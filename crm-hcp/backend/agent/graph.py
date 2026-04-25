@@ -33,7 +33,7 @@ def build_agent():
     Use 'prompt' parameter instead — it accepts a SystemMessage object.
     """
     llm = ChatGroq(
-        model="gemma2-9b-it",
+        model="llama-3.1-8b-instant",
         temperature=0.1,
         max_tokens=2048,
         api_key=os.getenv("GROQ_API_KEY")
