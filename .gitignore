@@ -1,2 +1,23 @@
-# Google App Engine generated folder
-appengine-generated/
+# ── Python ──────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# ── Environment (NEVER commit this) ─
+.env
+*.env
+
+# ── Database files ───────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── OS files ────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── VS Code ──────────────────────────
+.vscode/
