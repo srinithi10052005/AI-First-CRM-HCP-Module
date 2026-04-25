@@ -11,7 +11,7 @@ load_dotenv()
 
 def get_llm():
     return ChatGroq(
-        model="gemma2-9b-it",
+        model="llama-3.1-8b-instant",
         temperature=0.1,
         max_tokens=1024,
         api_key=os.getenv("GROQ_API_KEY")
