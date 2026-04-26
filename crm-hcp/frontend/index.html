@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-First CRM — HCP Module</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/redux@4/dist/redux.js"></script>
+  <script src="https://unpkg.com/react-redux@8/dist/react-redux.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#f0f4f8; --surface:#fff; --surface2:#f8fafc; --border:#e2e8f0;
+      --primary:#2563eb; --primary-dark:#1d4ed8; --primary-light:#dbeafe;
+      --accent:#7c3aed; --success:#059669; --warning:#d97706; --danger:#dc2626;
+      --text:#1e293b; --text-muted:#64748b; --text-light:#94a3b8;
+      --radius:10px; --shadow:0 1px 3px rgba(0,0,0,.1); --shadow-md:0 4px 6px -1px rgba(0,0,0,.1);
+    }
+    body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:14px; line-height:1.5; }
+
+    /* NAV */
+    .nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0 24px; height:56px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:100; box-shadow:var(--shadow); }
+    .nav-logo { display:flex; align-items:center; gap:8px; font-weight:700; font-size:15px; color:var(--primary); }
+    .nav-logo .dot { width:8px; height:8px; background:var(--primary); border-radius:50%; animation:pulse 2s infinite; }
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .nav-badge { background:var(--primary-light); color:var(--primary); font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px; }
+    .nav-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
+    .nav-avatar { width:32px; height:32px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:600; font-size:13px; }
+
+    /* LAYOUT */
+    .layout { display:flex; height:calc(100vh - 56px); }
+
+    /* SIDEBAR */
+    .sidebar { width:220px; background:var(--surface); border-right:1px solid var(--border); padding:16px 0; display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+    .sidebar-label { padding:4px 16px 8px; font-size:10px; font-weight:600; color:var(--text-light); text-transform:uppercase; letter-spacing:.08em; }
+    .sidebar-item { display:flex; align-items:center; gap:10px; padding:9px 16px; cursor:pointer; color:var(--text-muted); font-weight:500; font-size:13px; transition:all .15s; border-left:3px solid transparent; }
+    .sidebar-item:hover { background:var(--bg); color:var(--text); }
+    .sidebar-item.active { background:var(--primary-light); color:var(--primary); border-left-color:var(--primary); }
+
+    /* STATUS BAR */
+    .status-bar { padding:6px 20px; display:flex; align-items:center; gap:8px; font-size:11px; font-weight:500; border-radius:0; }
+    .status-bar.connected { background:#d1fae5; color:#065f46; border-bottom:1px solid #a7f3d0; }
+    .status-bar.disconnected { background:#fee2e2; color:#991b1b; border-bottom:1px solid #fecaca; }
+    .status-bar.checking { background:#fef9c3; color:#92400e; border-bottom:1px solid #fde68a; }
+    .status-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .status-dot.green { background:#22c55e; }
+    .status-dot.red { background:#ef4444; animation:pulse 1s infinite; }
+    .status-dot.yellow { background:#f59e0b; animation:pulse 1s infinite; }
+
+    /* MAIN */
+    .main { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
+    .log-screen { display:flex; gap:16px; height:100%; min-height:0; }
+
+    /* FORM PANEL */
+    .form-panel { flex:1; background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); overflow:hidden; display:flex; flex-direction:column; }
+    .panel-header { padding:12px 18px; border-bottom:1px solid var(--border); font-weight:600; font-size:14px; display:flex; align-items:center; gap:8px; background:var(--surface2); flex-shrink:0; }
+    .panel-body { padding:16px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px; }
+
+    /* FORM ELEMENTS */
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .form-group { display:flex; flex-direction:column; gap:4px; }
+    .form-group label { font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; }
+    .form-group input, .form-group select, .form-group textarea {
+      padding:8px 12px; border:1.5px solid var(--border); border-radius:7px;
+      font-family:'Inter',sans-serif; font-size:13px; color:var(--text);
+      background:var(--surface); transition:border-color .15s; outline:none; resize:none;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,.1);
+    }
+    .form-group textarea { min-height:65px; line-height:1.5; }
+
+    /* SENTIMENT */
+    .sentiment-row { display:flex; gap:8px; }
+    .sentiment-btn { flex:1; padding:7px; border:1.5px solid var(--border); border-radius:7px; cursor:pointer; font-size:12px; font-weight:600; text-align:center; transition:all .15s; background:var(--surface); }
+    .sentiment-btn.positive.selected { background:#d1fae5; border-color:#059669; color:#059669; }
+    .sentiment-btn.neutral.selected { background:#fef9c3; border-color:#d97706; color:#d97706; }
+    .sentiment-btn.negative.selected { background:#fee2e2; border-color:#dc2626; color:#dc2626; }
+
+    /* AI BOX */
+    .ai-box { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 14px; font-size:12px; }
+    .ai-box-title { font-weight:600; color:#059669; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+    .ai-box ul { padding-left:16px; display:flex; flex-direction:column; gap:3px; }
+    .ai-box li { color:var(--text-muted); }
+
+    /* FORM ACTIONS */
+    .form-actions { display:flex; gap:10px; justify-content:flex-end; padding-top:4px; }
+
+    /* CHAT PANEL */
+    .chat-panel { width:340px; background:var(--surface); border-radius:var(--radius); border:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
+    .chat-header { padding:12px 16px; border-bottom:1px solid var(--border); background:var(--surface2); display:flex; align-items:center; gap:10px; flex-shrink:0; }
+    .chat-header-icon { width:32px; height:32px; background:linear-gradient(135deg,var(--primary),var(--accent)); border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; flex-shrink:0; }
+    .chat-header-info { flex:1; min-width:0; }
+    .chat-header-title { font-weight:600; font-size:13px; }
+    .chat-header-sub { font-size:11px; color:var(--text-muted); }
+    .chat-online { display:flex; align-items:center; gap:4px; font-size:11px; color:#059669; font-weight:500; }
+    .chat-online-dot { width:7px; height:7px; background:#22c55e; border-radius:50%; box-shadow:0 0 5px #22c55e; }
+    .chat-messages { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+    .msg { display:flex; flex-direction:column; gap:3px; max-width:88%; }
+    .msg.user { align-self:flex-end; align-items:flex-end; }
+    .msg.agent { align-self:flex-start; align-items:flex-start; }
+    .msg-bubble { padding:8px 12px; border-radius:14px; font-size:12.5px; line-height:1.55; white-space:pre-wrap; word-break:break-word; }
+    .msg.user .msg-bubble { background:var(--primary); color:#fff; border-bottom-right-radius:3px; }
+    .msg.agent .msg-bubble { background:var(--surface2); color:var(--text); border:1px solid var(--border); border-bottom-left-radius:3px; }
+    .msg-time { font-size:10px; color:var(--text-light); padding:0 3px; }
+    .typing { display:flex; gap:4px; padding:6px 2px; align-items:center; }
+    .typing span { width:6px; height:6px; background:var(--text-light); border-radius:50%; animation:bounce 1.2s infinite; }
+    .typing span:nth-child(2){animation-delay:.2s} .typing span:nth-child(3){animation-delay:.4s}
+    @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+    .chat-input-area { padding:10px; border-top:1px solid var(--border); display:flex; gap:8px; flex-shrink:0; }
+    .chat-input { flex:1; padding:8px 12px; border:1.5px solid var(--border); border-radius:8px; font-family:'Inter',sans-serif; font-size:13px; resize:none; outline:none; line-height:1.4; }
+    .chat-input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+    .chat-send-btn { width:36px; height:36px; background:var(--primary); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; transition:background .15s; flex-shrink:0; align-self:flex-end; }
+    .chat-send-btn:hover{background:var(--primary-dark)} .chat-send-btn:disabled{background:var(--text-light);cursor:not-allowed}
+
+    /* BUTTONS */
+    .btn { padding:9px 18px; border-radius:8px; border:none; cursor:pointer; font-family:'Inter',sans-serif; font-weight:600; font-size:13px; transition:all .15s; display:inline-flex; align-items:center; gap:6px; }
+    .btn-primary{background:var(--primary);color:#fff} .btn-primary:hover{background:var(--primary-dark)}
+    .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text)} .btn-outline:hover{background:var(--bg)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    /* INTERACTIONS LIST */
+    .interactions-grid { display:flex; flex-direction:column; gap:10px; }
+    .interaction-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 18px; transition:box-shadow .15s; }
+    .interaction-card:hover{box-shadow:var(--shadow-md)}
+    .card-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:8px; }
+    .card-hcp { font-weight:600; font-size:14px; }
+    .card-specialty { font-size:12px; color:var(--text-muted); }
+    .card-meta { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+    .tag { font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px; background:var(--primary-light); color:var(--primary); }
+    .tag.positive{background:#d1fae5;color:#059669} .tag.neutral{background:#fef9c3;color:#b45309} .tag.negative{background:#fee2e2;color:#dc2626}
+    .card-summary { font-size:12.5px; color:var(--text-muted); line-height:1.5; }
+    .card-actions { display:flex; gap:6px; margin-top:10px; align-items:center; }
+    .icon-btn { padding:5px 10px; border-radius:6px; border:1px solid var(--border); background:var(--surface2); cursor:pointer; font-size:12px; font-weight:500; color:var(--text-muted); transition:all .15s; }
+    .icon-btn:hover{background:var(--primary-light);color:var(--primary);border-color:var(--primary)}
+    .icon-btn.danger:hover{background:#fee2e2;color:#dc2626;border-color:#dc2626}
+
+    /* TOAST */
+    .toast { position:fixed; top:66px; right:16px; padding:11px 16px; border-radius:10px; font-size:13px; font-weight:500; display:flex; align-items:center; gap:8px; z-index:999; box-shadow:var(--shadow-md); animation:slideIn .3s ease; max-width:340px; }
+    @keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+    .toast.success{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0}
+    .toast.error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+    .toast.info{background:var(--primary-light);color:var(--primary-dark);border:1px solid #bfdbfe}
+
+    /* MISC */
+    .empty{text-align:center;padding:50px 20px;color:var(--text-muted)}
+    .empty-icon{font-size:36px;margin-bottom:10px}
+    .page-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .page-title h2{font-size:18px;font-weight:700}
+    .page-title p{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+    /* BACKEND STATUS CARD */
+    .backend-card { background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:10px 14px; font-size:12px; color:#92400e; }
+    .backend-card strong { display:block; margin-bottom:4px; font-size:13px; }
+    .backend-card code { background:#fef3c7; padding:2px 6px; border-radius:4px; font-size:11px; font-family:monospace; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { createStore } = Redux;
+const { Provider, useSelector, useDispatch } = ReactRedux;
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ── Redux ────────────────────────────────────────────────────
+const SET_TAB='SET_TAB', SET_INTERACTIONS='SET_INTERACTIONS',
+      ADD_INTERACTION='ADD_INTERACTION', SET_TOAST='SET_TOAST',
+      SET_API_STATUS='SET_API_STATUS';
+
+const initialState = { activeTab:'log', interactions:[], toast:null, apiStatus:'checking' };
+
+function reducer(state=initialState, action) {
+  switch(action.type) {
+    case SET_TAB: return {...state, activeTab:action.payload};
+    case SET_INTERACTIONS: return {...state, interactions:action.payload};
+    case ADD_INTERACTION: return {...state, interactions:[action.payload,...state.interactions]};
+    case SET_TOAST: return {...state, toast:action.payload};
+    case SET_API_STATUS: return {...state, apiStatus:action.payload};
+    default: return state;
+  }
+}
+const store = createStore(reducer);
+
+// ── API config ───────────────────────────────────────────────
+// FastAPI always runs on 8000 regardless of what port the HTML is opened from
+const API = 'http://127.0.0.1:8000';
+
+async function apiFetch(endpoint, opts={}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000); // 10s timeout
+  try {
+    const r = await fetch(`${API}${endpoint}`, {
+      headers: {'Content-Type':'application/json'},
+      signal: controller.signal,
+      ...opts
+    });
+    clearTimeout(timeout);
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.detail || `HTTP ${r.status}`);
+    }
+    return r.json();
+  } catch(e) {
+    clearTimeout(timeout);
+    if (e.name === 'AbortError') throw new Error('Request timeout — is FastAPI running?');
+    throw e;
+  }
+}
+
+// ── Toast ────────────────────────────────────────────────────
+function Toast() {
+  const toast = useSelector(s=>s.toast);
+  const dispatch = useDispatch();
+  useEffect(()=>{
+    if(toast){ const t=setTimeout(()=>dispatch({type:SET_TOAST,payload:null}),4000); return ()=>clearTimeout(t); }
+  },[toast]);
+  if(!toast) return null;
+  const icons = {success:'✅', error:'❌', info:'ℹ️'};
+  return <div className={`toast ${toast.type}`}><span>{icons[toast.type]||'💬'}</span>{toast.message}</div>;
+}
+
+// ── Status Bar ───────────────────────────────────────────────
+function StatusBar() {
+  const apiStatus = useSelector(s=>s.apiStatus);
+  const dispatch = useDispatch();
+
+  const checkHealth = useCallback(async () => {
+    dispatch({type:SET_API_STATUS, payload:'checking'});
+    try {
+      await apiFetch('/health');
+      dispatch({type:SET_API_STATUS, payload:'connected'});
+    } catch {
+      dispatch({type:SET_API_STATUS, payload:'disconnected'});
+    }
+  }, []);
+
+  useEffect(()=>{
+    checkHealth();
+    const interval = setInterval(checkHealth, 10000); // check every 10s
+    return () => clearInterval(interval);
+  },[]);
+
+  if(apiStatus==='connected') return (
+    <div className="status-bar connected">
+      <div className="status-dot green"></div>
+      ✅ FastAPI connected — http://127.0.0.1:8000 is running
+    </div>
+  );
+  if(apiStatus==='checking') return (
+    <div className="status-bar checking">
+      <div className="status-dot yellow"></div>
+      ⏳ Checking connection to FastAPI at http://127.0.0.1:8000...
+    </div>
+  );
+  return (
+    <div className="status-bar disconnected">
+      <div className="status-dot red"></div>
+      ❌ FastAPI not running! Open terminal → cd backend → uvicorn main:app --reload
+      <span style={{marginLeft:'auto',cursor:'pointer',textDecoration:'underline'}} onClick={checkHealth}>Retry</span>
+    </div>
+  );
+}
+
+// ── Nav ──────────────────────────────────────────────────────
+function Nav() {
+  return (
+    <nav className="nav">
+      <div className="nav-logo"><div className="dot"></div>PharmaOS CRM</div>
+      <span className="nav-badge">HCP Module</span>
+      <div className="nav-right">
+        <span style={{fontSize:'12px',color:'var(--text-muted)'}}>Field Rep</span>
+        <div className="nav-avatar">FR</div>
+      </div>
+    </nav>
+  );
+}
+
+// ── Sidebar ──────────────────────────────────────────────────
+function Sidebar() {
+  const activeTab = useSelector(s=>s.activeTab);
+  const dispatch = useDispatch();
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-label">Navigation</div>
+      {[{id:'log',icon:'✏️',label:'Log Interaction'},{id:'list',icon:'📋',label:'All Interactions'}].map(item=>(
+        <div key={item.id} className={`sidebar-item ${activeTab===item.id?'active':''}`}
+          onClick={()=>dispatch({type:SET_TAB,payload:item.id})}>
+          <span>{item.icon}</span>{item.label}
+        </div>
+      ))}
+    </aside>
+  );
+}
+
+// ── Chat Panel ───────────────────────────────────────────────
+function ChatPanel() {
+  const dispatch = useDispatch();
+  const apiStatus = useSelector(s=>s.apiStatus);
+  const [messages, setMessages] = useState([{
+    role:'agent',
+    content:'👋 Hi! Describe your HCP interaction in plain English and I\'ll log it automatically.\n\nTry: "Met Dr. Sharma today, discussed OncoBoost Phase 3 trial data, he was very enthusiastic, gave him 5 samples of the 10mg dose"',
+    time:''
+  }]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const endRef = useRef(null);
+
+  useEffect(()=>{ endRef.current?.scrollIntoView({behavior:'smooth'}); },[messages,isTyping]);
+
+  const now = () => new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+  const sendMessage = async () => {
+    const text = input.trim();
+    if(!text || isTyping) return;
+
+    if(apiStatus !== 'connected') {
+      dispatch({type:SET_TOAST,payload:{message:'FastAPI is not running! Start it first.',type:'error'}});
+      return;
+    }
+
+    setMessages(prev=>[...prev,{role:'user',content:text,time:now()}]);
+    setInput('');
+    setIsTyping(true);
+
+    try {
+      const history = messages.map(m=>({
+        role: m.role==='agent' ? 'assistant' : 'user',
+        content: m.content
+      }));
+
+      const data = await apiFetch('/agent/chat',{
+        method:'POST',
+        body:JSON.stringify({message:text, conversation_history:history})
+      });
+
+      setMessages(prev=>[...prev,{role:'agent',content:data.response,time:now()}]);
+      dispatch({type:SET_TOAST,payload:{message:'Agent responded!',type:'success'}});
+    } catch(e) {
+      setMessages(prev=>[...prev,{
+        role:'agent',
+        content:`⚠️ ${e.message}\n\nFix:\n1. Open terminal in VS Code\n2. cd C:\\Users\\srinithi.b\\Downloads\\crm-hcp\\backend\n3. .venv\\Scripts\\activate\n4. uvicorn main:app --reload`,
+        time:now()
+      }]);
+    } finally { setIsTyping(false); }
+  };
+
+  return (
+    <div className="chat-panel">
+      <div className="chat-header">
+        <div className="chat-header-icon">🤖</div>
+        <div className="chat-header-info">
+          <div className="chat-header-title">AI Assistant</div>
+          <div className="chat-header-sub">Log interaction via chat</div>
+        </div>
+        <div className="chat-online">
+          <div className={`chat-online-dot ${apiStatus==='connected'?'':'opacity-50'}`}
+               style={{background: apiStatus==='connected'?'#22c55e':'#94a3b8', boxShadow: apiStatus==='connected'?'0 0 5px #22c55e':'none'}}></div>
+          {apiStatus==='connected'?'Online':'Offline'}
+        </div>
+      </div>
+
+      <div className="chat-messages">
+        {messages.map((msg,i)=>(
+          <div key={i} className={`msg ${msg.role}`}>
+            <div className="msg-bubble">{msg.content}</div>
+            {msg.time && <div className="msg-time">{msg.time}</div>}
+          </div>
+        ))}
+        {isTyping && (
+          <div className="msg agent">
+            <div className="msg-bubble">
+              <div className="typing"><span/><span/><span/></div>
+            </div>
+          </div>
+        )}
+        <div ref={endRef}/>
+      </div>
+
+      <div className="chat-input-area">
+        <textarea className="chat-input" value={input}
+          onChange={e=>setInput(e.target.value)}
+          onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}}
+          placeholder={apiStatus==='connected'?"Describe interaction... (Enter to send)":"⚠️ Start FastAPI first (see status bar above)"}
+          rows={2}/>
+        <button className="chat-send-btn" onClick={sendMessage} disabled={isTyping||!input.trim()}>➤</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Log Form ─────────────────────────────────────────────────
+function LogInteractionForm() {
+  const dispatch = useDispatch();
+  const apiStatus = useSelector(s=>s.apiStatus);
+  const [loading, setLoading] = useState(false);
+  const blank = {
+    hcp_name:'', hcp_specialty:'', interaction_type:'Meeting',
+    interaction_date:new Date().toISOString().split('T')[0],
+    interaction_time:new Date().toTimeString().slice(0,5),
+    attendees:'', topics_discussed:'', materials_shared:'',
+    samples_distributed:'', sentiment:'Neutral',
+    outcomes:'', follow_up_actions:'', logged_by:'Field Rep'
+  };
+  const [form, setForm] = useState(blank);
+  const set = f => e => setForm(p=>({...p,[f]:e.target.value}));
+
+  const handleSubmit = async () => {
+    if(!form.hcp_name.trim()){
+      dispatch({type:SET_TOAST,payload:{message:'HCP Name is required!',type:'error'}});
+      return;
+    }
+    if(apiStatus !== 'connected'){
+      dispatch({type:SET_TOAST,payload:{message:'FastAPI is not running! Start it first.',type:'error'}});
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await apiFetch('/interactions',{method:'POST',body:JSON.stringify(form)});
+      dispatch({type:ADD_INTERACTION,payload:data.data});
+      dispatch({type:SET_TOAST,payload:{message:`✅ Interaction with ${form.hcp_name} logged!`,type:'success'}});
+      setForm(blank);
+    } catch(e) {
+      dispatch({type:SET_TOAST,payload:{message:`Error: ${e.message}`,type:'error'}});
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="form-panel">
+      <div className="panel-header">📝 Log HCP Interaction</div>
+      <div className="panel-body">
+
+        {apiStatus === 'disconnected' && (
+          <div className="backend-card">
+            <strong>⚠️ FastAPI server not running</strong>
+            Open a new terminal and run:<br/>
+            <code>cd C:\Users\srinithi.b\Downloads\crm-hcp\backend</code><br/>
+            <code>.venv\Scripts\activate</code><br/>
+            <code>uvicorn main:app --reload</code>
+          </div>
+        )}
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>HCP Name *</label>
+            <input value={form.hcp_name} onChange={set('hcp_name')} placeholder="Search or enter HCP name..."/>
+          </div>
+          <div className="form-group">
+            <label>Interaction Type</label>
+            <select value={form.interaction_type} onChange={set('interaction_type')}>
+              <option>Meeting</option><option>Call</option><option>Email</option><option>Conference</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>Date</label>
+            <input type="date" value={form.interaction_date} onChange={set('interaction_date')}/>
+          </div>
+          <div className="form-group">
+            <label>Time</label>
+            <input type="time" value={form.interaction_time} onChange={set('interaction_time')}/>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label>HCP Specialty</label>
+          <input value={form.hcp_specialty} onChange={set('hcp_specialty')} placeholder="e.g. Oncologist, Cardiologist..."/>
+        </div>
+
+        <div className="form-group">
+          <label>Attendees</label>
+          <input value={form.attendees} onChange={set('attendees')} placeholder="Enter names or search..."/>
+        </div>
+
+        <div className="form-group">
+          <label>Topics Discussed</label>
+          <textarea value={form.topics_discussed} onChange={set('topics_discussed')} placeholder="Enter key discussion points..."/>
+        </div>
+
+        <div className="form-group">
+          <label>Materials Shared</label>
+          <input value={form.materials_shared} onChange={set('materials_shared')} placeholder="Brochures, PDFs..."/>
+        </div>
+
+        <div className="form-group">
+          <label>Samples Distributed</label>
+          <input value={form.samples_distributed} onChange={set('samples_distributed')} placeholder="Drug samples and quantity..."/>
+        </div>
+
+        <div className="form-group">
+          <label>Observed HCP Sentiment</label>
+          <div className="sentiment-row">
+            {['Positive','Neutral','Negative'].map(s=>(
+              <div key={s} className={`sentiment-btn ${s.toLowerCase()} ${form.sentiment===s?'selected':''}`}
+                onClick={()=>setForm(p=>({...p,sentiment:s}))}>
+                {s==='Positive'?'😊':s==='Neutral'?'😐':'😞'} {s}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label>Outcomes</label>
+          <textarea value={form.outcomes} onChange={set('outcomes')} placeholder="Key outcomes or agreements..."/>
+        </div>
+
+        <div className="form-group">
+          <label>Follow-up Actions</label>
+          <textarea value={form.follow_up_actions} onChange={set('follow_up_actions')} placeholder="Next steps or tasks..."/>
+        </div>
+
+        <div className="ai-box">
+          <div className="ai-box-title">✨ AI Suggested Follow-ups</div>
+          <ul>
+            <li>Schedule follow-up meeting in 2 weeks</li>
+            <li>Send product efficacy data sheet</li>
+            <li>Add to advisory board invite list</li>
+          </ul>
+        </div>
+
+        <div className="form-actions">
+          <button className="btn btn-outline" onClick={()=>setForm(blank)}>Clear</button>
+          <button className="btn btn-primary" onClick={handleSubmit} disabled={loading||apiStatus!=='connected'}>
+            {loading?'⏳ Saving...':'💾 Log Interaction'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Log Screen ───────────────────────────────────────────────
+function LogScreen() {
+  return (
+    <div className="log-screen">
+      <LogInteractionForm/>
+      <ChatPanel/>
+    </div>
+  );
+}
+
+// ── Interactions List ────────────────────────────────────────
+function InteractionsList() {
+  const dispatch = useDispatch();
+  const interactions = useSelector(s=>s.interactions);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const d = await apiFetch('/interactions');
+      dispatch({type:SET_INTERACTIONS,payload:d.interactions});
+    } catch(e) {
+      dispatch({type:SET_TOAST,payload:{message:`Error: ${e.message}`,type:'error'}});
+    } finally { setLoading(false); }
+  };
+
+  useEffect(()=>{ load(); },[]);
+
+  const del = async (id) => {
+    try {
+      await apiFetch(`/interactions/${id}`,{method:'DELETE'});
+      dispatch({type:SET_INTERACTIONS,payload:interactions.filter(i=>i.id!==id)});
+      dispatch({type:SET_TOAST,payload:{message:'Deleted',type:'info'}});
+    } catch(e) {
+      dispatch({type:SET_TOAST,payload:{message:`Error: ${e.message}`,type:'error'}});
+    }
+  };
+
+  const sClass = s => s==='Positive'?'positive':s==='Negative'?'negative':'neutral';
+  const sIcon = s => s==='Positive'?'😊':s==='Negative'?'😞':'😐';
+
+  return (
+    <div>
+      <div className="page-title">
+        <div>
+          <h2>All Interactions</h2>
+          <p>{interactions.length} interaction{interactions.length!==1?'s':''} logged</p>
+        </div>
+        <button className="btn btn-outline" onClick={load} disabled={loading}>
+          {loading?'⏳':'🔄'} Refresh
+        </button>
+      </div>
+
+      {interactions.length===0 && !loading ? (
+        <div className="empty">
+          <div className="empty-icon">📭</div>
+          <p style={{fontWeight:600}}>No interactions yet</p>
+          <p style={{fontSize:'12px',marginTop:'6px'}}>Use the Log Interaction screen to add your first entry.</p>
+        </div>
+      ) : (
+        <div className="interactions-grid">
+          {interactions.map(i=>(
+            <div key={i.id} className="interaction-card">
+              <div className="card-top">
+                <div>
+                  <div className="card-hcp">{i.hcp_name}</div>
+                  {i.hcp_specialty&&<div className="card-specialty">{i.hcp_specialty}</div>}
+                </div>
+                <span style={{fontSize:'11px',color:'var(--text-light)',background:'var(--bg)',padding:'2px 8px',borderRadius:'20px'}}>ID: {i.id}</span>
+              </div>
+              <div className="card-meta">
+                <span className="tag">{i.interaction_type}</span>
+                {i.interaction_date&&<span className="tag">📅 {i.interaction_date}</span>}
+                {i.sentiment&&<span className={`tag ${sClass(i.sentiment)}`}>{sIcon(i.sentiment)} {i.sentiment}</span>}
+              </div>
+              {(i.ai_summary||i.topics_discussed)&&
+                <div className="card-summary">{i.ai_summary||i.topics_discussed}</div>}
+              {i.follow_up_actions&&
+                <div style={{fontSize:'12px',color:'var(--text-muted)',marginTop:'6px',lineHeight:1.5}}>
+                  📌 {i.follow_up_actions}
+                </div>}
+              <div className="card-actions">
+                <button className="icon-btn danger" onClick={()=>del(i.id)}>🗑️ Delete</button>
+                <span style={{fontSize:'11px',color:'var(--text-light)',marginLeft:'auto'}}>by: {i.logged_by}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── App Root ─────────────────────────────────────────────────
+function App() {
+  const activeTab = useSelector(s=>s.activeTab);
+  return (
+    <div>
+      <Nav/>
+      <StatusBar/>
+      <div className="layout">
+        <Sidebar/>
+        <main className="main">
+          {activeTab==='log' && <LogScreen/>}
+          {activeTab==='list' && <InteractionsList/>}
+        </main>
+      </div>
+      <Toast/>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<Provider store={store}><App/></Provider>);
+</script>
+</body>
+</html>
